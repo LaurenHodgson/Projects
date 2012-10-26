@@ -15,7 +15,9 @@ colnames(segLength)=c('SegmentNo','TotLength')
 runoff=merge(runoff,segLength, by='SegmentNo')
 
 runoff$SegProp=runoff$SegLength/runoff$TotLength
-
+#############################################################################
+##CASSIE'S SCRIPT GOES HERE
+#############################################################################
 
 
 ####complete action csv

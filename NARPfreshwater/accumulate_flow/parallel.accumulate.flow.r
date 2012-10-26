@@ -4,42 +4,67 @@ library(SDMTools)
 library(parallel)
 
 flowdata=readLines('/scratch/jc155857/graph_code/out_final_processed.csv') #read in the list of flow relationships
-action=read.csv('/home/jc148322/NARPfreshwater/final_action.csv') #read in runoff
+runoff=read.csv('/home/jc148322/NARPfreshwater/final_runoff.csv') #read in runoff
 
 accflow=matrix(NA, nr=length(flowdata),nc=2) #make an empty matrix to put data into
 
-tdata=strsplit(flowdata, ',') #strinsplit the flowdata on commas
+flowdata=strsplit(flowdata, ',') #strinsplit the flowdata on commas
 
-accflow[,1] = as.vector(sapply(tdata,'[',1)) #print the output of first HydroIDs to another table
+accflow[,1] = as.vector(sapply(flowdata,'[',1)) #print the output of first HydroIDs to out table
+
+flowdata=lapply(flowdata,as.numeric) #change flowdata from character to numeric
 
 ## -----------------------------------------------------------------------------------------
-## best method so far:
+## accumulation function
+accumulate = function(ids) {
+tdata=runoff[which(runoff$HydroID %in% ids),]
+headwater=setdiff(ids,tdata$NextDownID)
 
-tdata=lapply(tdata,as.numeric) #change flowdata from character to numeric
+if(tdata$ChannelType[which(tdata$HydroID==headwater)]=='bi_sub') {
+	fromNode=tdata$From_Node[which(tdata$HydroID==headwater)]
+	bi_main=runoff$HydroID[which(runoff$From_Node==fromNode & runoff$ChannelType=='bi_main')]
+	upID=which(accflow==bi_main)
+	upIDs=flowdata[[upID]]
+	upIDs=upIDs[which(upIDs!=bi_main)]
+	ids=c(ids,upIDs)
+	
+	tdata=runoff[which(runoff$HydroID %in% ids),]
+	headwater=setdiff(ids,tdata$NextDownID)
 
-subtdata=tdata[1:10000]
-subacc=accflow[1:10000,]
+}
+
+flow=tdata$Runoff[which(tdata$HydroID==headwater)]
+nextdown=tdata$NextDownID[which(tdata$HydroID==headwater)]
+repeat{
+	addflow=tdata$Runoff[which(tdata$HydroID==nextdown)]*tdata$BiProp[which(tdata$HydroID==nextdown)]
+	if (length(addflow)==0) { break }	
+	flow=flow+addflow
+	nextdown=tdata$NextDownID[which(tdata$HydroID==nextdown)]
+}
+return(flow)}
+
+## -----------------------------------------------------------------------------------------
+
 
 ncore = 10 #define the number of cores in teh cluster
 cl <- makeCluster(getOption("cl.cores", ncore)) #define a cluster with the correct number of cores 
-clusterExport(cl,'action') #export necessary objects to cores in cluster
+clusterExport(cl,'runoff') #export necessary objects to cores in cluster
 
-accflow[,2]=parSapply(cl, tdata, function(ids) { return(sum(action$local_runoff[which(action$HydroID %in% ids)]*action$bi_prop[which(action$HydroID %in% ids)])) }) 
+accflow[,2]=parSapply(cl, flowdata, accumulate(ids)) 
 stopCluster(cl)
 
 write.csv(accflow,'/home/jc148322/NARPfreshwater/acc_flow.csv',row.names=F)
-# subacc[,2]=parSapply(cl, subtdata, function(ids) { return(sum(runoff$runoff[which(runoff$node_id %in% ids)])) }) 
-# stopCluster(cl)
 
+## -----------------------------------------------------------------------------------------
+## testing on a subsample
 
-
-
-## -----------
-#testing things
+subdata=flowdata[1:100]
+subacc=accflow[1:100,]
 
 ncore = 10 #define the number of cores in teh cluster
 cl <- makeCluster(getOption("cl.cores", ncore)) #define a cluster with the correct number of cores 
+clusterExport(cl,'runoff') #export necessary objects to cores in cluster
 
+subacc[,2]=parSapply(cl, subdata, accumulate(ids)) 
+stopCluster(cl)
 
-parSapply(cl, 1:15, get("+"), 2)
-do.call("rbind", clusterCall(cl, function(cl) Sys.info()["nodename"]))
