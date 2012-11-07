@@ -12,6 +12,7 @@ files=list.files('output/ascii/');
 	
 for (es in ESs) {
 	tfiles=grep(es,files,value=TRUE)
+	tfiles=tfiles[-grep('all',tfiles)]
 	pot.mat=matrix(NA, nr=nrow(pos),nc=length(tfiles))
 	colnames(pot.mat)=gsub('.asc.gz','',tfiles)
 	for (tfile in tfiles) { cat(tfile, '\n')

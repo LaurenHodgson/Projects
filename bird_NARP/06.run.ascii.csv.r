@@ -31,7 +31,7 @@ common.name=as.character(bird.data$ClimName[which(bird.data$ClimID==spp)])
 
 ###################################
 
-spp.dir = paste('/home/jc165798/working/NARP_birds/models/',spp,'/',sep=''); setwd(spp.dir) #define the overarching species directory
+spp.dir = paste('/home/jc165798/working/NARP_birds/models_1km/',spp,'/',sep=''); setwd(spp.dir) #define the overarching species directory
 
 ###################################
 #Bring in all the necessary information
@@ -46,18 +46,19 @@ if (threshold$Minimum.training.presence.area>0.8){
 }else {
 	threshold = threshold$Equate.entropy.of.thresholded.and.original.distributions.logistic.threshold[1]#extract the species threshold value
 }
-spp.dir = paste('/home/jc148322/Bird_NARP/species.outputs/',spp,'/',sep=''); setwd(spp.dir) #define the overarching species directory
+spp.dir = paste('/home/jc148322/Bird_NARP/species.outputs_1km/',spp,'/',sep=''); setwd(spp.dir) #define the overarching species directory
 load(file=paste(spp.dir,spp,'.potential.dist.mat.Rdata',sep='')) #load the potential matrix
 pot.mat[which(pot.mat<threshold)] = 0 # change anything < threshold to 0
 
 ###################################
 #overlay polygons
+spp.dir = paste('/home/jc148322/Bird_NARP/species.outputs/',spp,'/',sep=''); setwd(spp.dir) #define the overarching species directory
 files=list.files(pattern='tpoly')
 if (length(files)==0){tpolys=NULL
 }else{
 tpolys = readShapePoly('tpoly.shp') }#read in the polygon files
 
-
+spp.dir = paste('/home/jc148322/Bird_NARP/species.outputs_1km/',spp,'/',sep=''); setwd(spp.dir) #define the overarching species directory
 ###################################
 #Create asciis
 #RCP85
@@ -122,7 +123,7 @@ out.poly.quant = potasc.quant*tout2
 
 ###################################
 #determine areas
-source('/home/jc148322/scripts/NARP_birds/06.run.summary.r')
+source('/home/jc148322/scripts/NARP_birds/06b.run.summary.r')
 
 write.csv(summary.tidy, paste(spp.dir, spp,'.summary.csv',sep=''))
 write.csv(oneline.summary, paste(spp.dir, spp,'.one.line.summary.csv',sep=''))

@@ -4,12 +4,12 @@
 
 ################################################################################
 library(SDMTools); library(maptools) #load the necessary libraries
-wd = "/home/jc165798/working/NARP_birds/models/"; setwd(wd) #define and set the working directory
+wd = "/home/jc165798/working/NARP_birds/models_1km/"; setwd(wd) #define and set the working directory
 
 species=list.files()
 
 sh.dir='/home/jc148322/scripts/NARP_birds/ascii_csv.sh/' #dir to write sh scripts to
-for (spp in species){ cat(spp, '\n')
+for (spp in species[1:2]){ cat(spp, '\n')
 	setwd(sh.dir)
 	##create the sh file
 	 zz = file(paste('06.',spp,'.csv.sh',sep=''),'w')
