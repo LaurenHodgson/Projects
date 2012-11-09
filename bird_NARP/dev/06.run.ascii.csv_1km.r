@@ -70,44 +70,41 @@ RCP85.quant=t(apply(pot.mat2[,],1,function(x) { return(quantile(x,0.5,na.rm=TRUE
 RCP85.asc=base.asc; RCP85.asc[cbind(pos$row,pos$col)]=RCP85.quant #create the asciis
 
 #RCP45
-cois=grep('RCP6', colnames(pot.mat), value=T) #determine columns of interest - RCP85
-pot.mat2=pot.mat[,cois]#subset columns of interest
+# cois=grep('RCP6', colnames(pot.mat), value=T) #determine columns of interest - RCP85
+# pot.mat2=pot.mat[,cois]#subset columns of interest
 
-RCP6.quant=t(apply(pot.mat2[,],1,function(x) { return(quantile(x,0.5,na.rm=TRUE,type=8)) })) #get the percentiles
+# RCP6.quant=t(apply(pot.mat2[,],1,function(x) { return(quantile(x,0.5,na.rm=TRUE,type=8)) })) #get the percentiles
 
-RCP6.asc=base.asc; RCP6.asc[cbind(pos$row,pos$col)]=RCP6.quant #create the asciis
+# RCP6.asc=base.asc; RCP6.asc[cbind(pos$row,pos$col)]=RCP6.quant #create the asciis
 
 
 #RCP3PD
-cois=grep('RCP3PD', colnames(pot.mat), value=T) #determine columns of interest - RCP85
-pot.mat2=pot.mat[,cois]#subset columns of interest
+# cois=grep('RCP3PD', colnames(pot.mat), value=T) #determine columns of interest - RCP85
+# pot.mat2=pot.mat[,cois]#subset columns of interest
 
-RCP3PD.quant=t(apply(pot.mat2[,],1,function(x) { return(quantile(x,0.5,na.rm=TRUE,type=8)) })) #get the percentiles
+# RCP3PD.quant=t(apply(pot.mat2[,],1,function(x) { return(quantile(x,0.5,na.rm=TRUE,type=8)) })) #get the percentiles
 
-RCP3PD.asc=base.asc; RCP3PD.asc[cbind(pos$row,pos$col)]=RCP3PD.quant #create the asciis
+# RCP3PD.asc=base.asc; RCP3PD.asc[cbind(pos$row,pos$col)]=RCP3PD.quant #create the asciis
 
 #
-potasc.quant=cbind(as.vector(RCP3PD.quant),as.vector(RCP6.quant),as.vector(RCP85.quant))
+potasc.quant=as.vector(RCP85.quant);potasc.quant=as.data.frame(potasc.quant)
 potcurasc=base.asc; potcurasc[cbind(pos$row,pos$col)]=pot.mat[,1] #create the asciis
 
 write.asc.gz(potcurasc,paste(spp.dir, spp, '.current',sep=''))
-write.asc.gz(RCP3PD.asc,paste(spp.dir, spp, '.RCP3PD',sep=''))
-write.asc.gz(RCP6.asc,paste(spp.dir, spp, '.RCP6',sep=''))
+# write.asc.gz(RCP3PD.asc,paste(spp.dir, spp, '.RCP3PD',sep=''))
+# write.asc.gz(RCP6.asc,paste(spp.dir, spp, '.RCP6',sep=''))
 write.asc.gz(RCP85.asc,paste(spp.dir, spp, '.RCP85',sep=''))
 
 ###################################
 #find min/max lats and lons
 curpos=cbind(pos,pot.mat[,1]); save(x=curpos, file=paste(spp.dir, 'curpos.Rdata',sep=''))
 futpos=cbind(pos,potasc.quant); save(futpos,file=paste(spp.dir, 'futpos.Rdata',sep=''))
-min.lat=min(min(curpos$lat[which(curpos[,6]>0)],na.rm=TRUE),min(futpos$lat[which(futpos[,6:8]>0)],na.rm=TRUE))
-max.lat=max(max(curpos$lat[which(curpos[,6]>0)],na.rm=TRUE),max(futpos$lat[which(futpos[,6:8]>0)],na.rm=TRUE))
-min.lon=min(min(curpos$lon[which(curpos[,6]>0)],na.rm=TRUE),min(futpos$lon[which(futpos[,6:8]>0)],na.rm=TRUE))
-max.lon=max(max(curpos$lon[which(curpos[,6]>0)],na.rm=TRUE),max(futpos$lon[which(futpos[,6:8]>0)],na.rm=TRUE))
+
 ###################################
 #Generate polygon-based stats
 if (is.null(tpolys)) { tout=pot.mat[,1]*0
 }else{
-tdata=cbind(pos[,1:2],pot.mat[,1]);coordinates(tdata) = ~lon+lat
+tdata=cbind(pos[,c('lat','lon')],pot.mat[,1]);coordinates(tdata) = ~lon+lat #requires lat and lon columns
 tout = overlay(tdata,tpolys);tout[which(is.na(tout))]=0 }
 
 in.poly=pot.mat*tout #make a copy of pot.mat and multiply by ploygon to determine if inside polygon.

@@ -24,7 +24,7 @@ species = list.files(work.dir) #get a list of species
 		threshold = read.csv('maxentResults.csv'); 
 		threshold = threshold$Equate.entropy.of.thresholded.and.original.distributions.logistic.threshold[1]#extract the species threshold value
 
-		tasc[which(tasc<threshold)]=0; tasc[which(tasc>threshold)]=1
+		tasc[which(tasc<threshold)]=0; tasc[which(tasc>=threshold)]=1
 		
 		trichness=trichness+tasc
 		

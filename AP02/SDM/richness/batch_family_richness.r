@@ -47,7 +47,7 @@ families=unique(famdata$family)
 yr=1990
 
 setwd(sh.dir)
-for (tfam in families[1:2]){
+for (tfam in families){
 
 	
 		

@@ -3,8 +3,8 @@ library(SDMTools)
 sh.dir='/home/jc148322/scripts/AP02/richness.sh/';dir.create(sh.dir) #dir to write sh scripts to
 
 
-taxa=c('amphibians','reptiles','mammals')
-tax=taxa[1]
+taxa=c('amphibians','reptiles','mammals','birds')
+tax=taxa[4]
 ESs=c('RCP3PD','RCP45','RCP6','RCP85')
 YEARs=seq(2015,2085,10)
 

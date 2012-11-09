@@ -1,189 +1,115 @@
-
-#drafted by Lauren Hodgson ( lhodgson86@gmail.com ...  )
+#drafted by Lauren Hodgson <lhodgson86@gmail.com>
 #GNU General Public License .. feel free to use / distribute ... no warranties
 
 ################################################################################
-###################################
-#Determine area and suitability stats, and make a summary table.
-#for future
+#get the command line arguments
+args=(commandArgs(TRUE)); for(i in 1:length(args)) { eval(parse(text=args[[i]])) }
+library(SDMTools); library(maptools) #load the necessary libraries
 
-areas=area.in=area.out=area.total=area.future=NULL
+#define directories 
+image.dir = "/home/jc148322/Bird_NARP/images/"
+spp.dir = paste('/home/jc165798/working/NARP_birds/models_1km/',spp,'/',sep=''); setwd(spp.dir) #define the input species data directory
 
-tdata=potasc.quant; tdata[which(tdata>0)]=1
-for (tt in 1:ncol(tdata)){ cat(tt, '\n')
-area.total=sum(tdata[,tt]*pos$area)
-areas=c(areas,area.total)
+##----------------------------------------------------------------
+#Bring in all the necessary information
+base.asc = read.asc.gz('/home/jc165798/Climate/CIAS/Australia/1km/baseline.76to05/base.asc.gz') #read in the base asc file
+pos = read.csv('/home/jc165798/Climate/CIAS/Australia/1km/baseline.76to05/base.positions.csv',as.is=TRUE) #read in the position files
+cellarea = grid.area(base.asc) #get the area of individual cells
+pos$area = cellarea[cbind(pos$row,pos$col)] #append the cell area
+bird.data=read.csv('/home/jc148322/Bird_NARP/raw.data/ClimModels.csv')#get bird spp
+common.name=as.character(bird.data$ClimName[which(bird.data$ClimID==spp)])
+
+##----------------------------------------------------------------
+#determine which threshold to use, and apply to pot.mat
+threshold = read.csv('output/maxentResults.csv'); threshold = threshold[which(threshold$Species==spp),] #read in teh maxent data and only keep info for the species of interest
+if (threshold$Minimum.training.presence.area>0.8){
+	threshold = threshold$Equate.entropy.of.thresholded.and.original.distributions.logistic.threshold[1]/2
+}else {
+	threshold = threshold$Equate.entropy.of.thresholded.and.original.distributions.logistic.threshold[1]#extract the species threshold value
+}
+spp.dir = paste('/home/jc148322/Bird_NARP/species.outputs/',spp,'/',sep=''); setwd(spp.dir) #define the overarching species directory
+load(file=paste(spp.dir,spp,'.potential.dist.mat.Rdata',sep='')) #load the potential matrix
+pot.mat[which(pot.mat<threshold)] = 0 # change anything < threshold to 0
+
+##----------------------------------------------------------------
+#Create asciis, from which images will be generated
+current=base.asc; current[cbind(pos$row,pos$col)]=pot.mat[,1] #create the current ascii
+
+#RCP85
+cois=grep('RCP85', colnames(pot.mat), value=T) #determine columns of interest - RCP85
+
+outquant=t(apply(pot.mat[,cois],1,function(x) { return(quantile(x,0.5,na.rm=TRUE,type=8)) })) #get the 50th percentile
+RCP85.asc=base.asc; RCP85.asc[cbind(pos$row,pos$col)]=outquant #create future median ascii
+
+write.asc.gz(current,paste(spp.dir, spp, '.current',sep='')) #write out the ascii
+write.asc.gz(RCP85.asc,paste(spp.dir, spp, '.RCP85',sep='')) #write out the ascii
+
+##----------------------------------------------------------------
+#overlay polygons
+files=list.files(pattern='tpoly')
+if (length(files)==0){tpolys=NULL
+}else{
+tpolys = readShapePoly('tpoly.shp') }#read in the polygon files
+
+#Generate polygon-based summaries
+if (is.null(tpolys)) { tout=pot.mat[,1]*0
+}else{
+tdata=cbind(pos[,c('lat','lon')],pot.mat[,1]);coordinates(tdata) = ~lon+lat
+tout = overlay(tdata,tpolys);tout[which(is.na(tout))]=0 }
+
+in.poly=pot.mat*tout #make a copy of pot.mat and multiply by ploygon to determine if inside polygon.
+
+tout2=tout; tout2[which(tout==1)]=2 #set areas outside polygon to 1
+tout2[which(tout2==0)]=1
+tout2[which(tout2==2)]=0
+
+out.poly=pot.mat*tout2 #make a copy of pot.mat and multiply by ploygon to determine if outside polygon.
+
+##----------------------------------------------------------------
+#determine areas inside and outside polygons
+
+get.stats=function(v) {
+	outquant=quantile(v,c(0.1,0.25,0.5,0.75,0.9),na.rm=TRUE,type=8)
+	Min=min(v); Mean=mean(v); Max=max(v); SD=sd(v)
+	stats=c(Mean,SD,Min,Max,outquant)
+	return(stats)}
+
+#find and summarise areas and suitability: total; inside polygon, outside polygon
+vois=c('area','suit')
+inputs=c('pot.mat','in.poly','out.poly')
+varnames=c('total','in.poly','out.poly')
+statnames=c('mean','sd','min','max','10th','25th','50th','75th','90th')
+
+for (tvar in vois) {
+	full.summary=NULL;i=0
+	for (input in inputs) { i=i+1
+		tdata=get(input);
+		if (tvar=='area') tdata[which(tdata>0)]=1; 
+		tdata=(tdata*pos$area) #find the areas of each cell above the threshold
+		areas=apply(tdata,2,sum) #get the raw areas for each gcm
+		tsummary=t(as.data.frame(get.stats(areas)));tsummary=as.data.frame(tsummary) #got to be a better way to do this
+		for (ii in 1:ncol(tsummary)){
+			colnames(tsummary)[ii]=paste(varnames[i],statnames[ii],sep='.')} #name the columns appropriately
+		if (input==inputs[1])full.summary=tsummary else full.summary=cbind(full.summary,tsummary)
+	}
+	write.csv(full.summary, paste(spp.dir,tvar,'.summary.csv',sep=''),row.names=FALSE)
 }
 
-area.in=NULL
-tdata=in.poly.quant;tdata[which(tdata>0)]=1
-for (tt in 1:ncol(tdata)){ cat(tt, '\n')
-area.in.poly=sum(tdata[,tt]*pos$area)
-area.in=c(area.in,area.in.poly)
-}
-area.out=NULL
-tdata=out.poly.quant; tdata[which(tdata>0)]=1
-for (tt in 1:ncol(tdata)){ cat(tt, '\n')
-area.out.poly=sum(tdata[,tt]*pos$area)
-area.out=c(area.out,area.out.poly)
-}
 
-area.future=rbind(areas,area.in,area.out)
-colnames(area.future)=c('RCP3PD','RCP6','RCP85')
+##----------------------------------------------------------------
+#Summarise bioclim variables within core polygon range
+load('/home/jc148322/Bird_NARP/pos.bc.Rdata')
+pos.bc=pos.bc[,5:8]*tout #set cells outside polygon to zero
+pos.bc=pos.bc[which(pos.bc$bc01>0),]
+bioclim.means=apply(pos.bc,2,mean)
+bioclim.sd=apply(pos.bc,2,sd)
+tt=c(bioclim.means,bioclim.sd)
+tt=tt[c(1,5,2,6,3,7,4,8)]
+tt=c(common.name,spp,tt)
+bioclim.summary=matrix(NA,nr=1,nc=length(tt));bioclim.summary[1,]=tt
+colnames(bioclim.summary)=c('common.name','ClimID','bc01.mean','bc01.sd','bc04.mean','bc04.sd','bc12.mean','bc12.sd','bc15.mean','bc15.sd')
+write.csv(bioclim.summary, paste(spp.dir, spp,'.one.line.bioclim.csv',sep=''),row.names=FALSE)
 
-#for current
-area.total=pot.mat[,1];area.total[which(area.total>0)]=1
-area.total=sum(area.total*pos$area)
-
-tdata=in.poly[,1]; tdata[which(tdata>0)]=1
-area.in=sum(tdata*pos$area)
-
-
-tdata=out.poly[,1]; tdata[which(tdata>0)]=1
-area.out=sum(tdata*pos$area)
-
-area.current=c(area.total,area.in,area.out)
-
-area.table=cbind(area.current,area.future)
-#determine proportional areas
-prop.area.table=NULL
-prop.area.table=area.table/area.total
-
-#determine summed suitability
-
-suits=suit.in=suit.out=suit.total=suit.future=NULL
-
-tdata=potasc.quant;
-for (tt in 1:ncol(tdata)){ cat(tt, '\n')
-suit.total=sum(tdata[,tt]*pos$area)
-suits=c(suits,suit.total)
-}
-
-suit.in=NULL
-tdata=in.poly.quant;
-for (tt in 1:ncol(tdata)){ cat(tt, '\n')
-suit.in.poly=sum(tdata[,tt]*pos$area)
-suit.in=c(suit.in,suit.in.poly)
-}
-suit.out=NULL
-tdata=out.poly.quant; 
-for (tt in 1:ncol(tdata)){ cat(tt, '\n')
-suit.out.poly=sum(tdata[,tt]*pos$area)
-suit.out=c(suit.out,suit.out.poly)
-}
-
-suit.future=rbind(suits,suit.in,suit.out)
-colnames(suit.future)=c('RCP3PD','RCP6','RCP85')
-
-#for current
-suit.total=sum(pot.mat[,1]*pos$area)
-
-tdata=in.poly[,1]
-suit.in=sum(tdata*pos$area)
-
-
-tdata=out.poly[,1]
-suit.out=sum(tdata*pos$area)
-
-suit.current=c(suit.total,suit.in,suit.out)
-
-suit.table=cbind(suit.current,suit.future)
-prop.suit.table=suit.table/suit.total
-
-#tidy up the tables, round things
-area.table=round(area.table/1000000000,digits=2) #round the data
-prop.area.table=round(prop.area.table,digits=2)
-prop.suit.table=round(prop.suit.table,digits=2)
-
-area.table=cbind(c('Total Area (1000s m^2)','Suitable area in polygon', 'Suitable area outside polygon'),area.table)
-area.table=rbind(c('','Current', 'RCP3PD', 'RCP6', 'RCP85'),area.table)
-prop.area.table=cbind(c('Proportion area remaining', 'Proportion area inside polygon', 'Proportion area outside polygon'),prop.area.table)
-prop.suit.table=cbind(c('Proportion abundance','Proportion abund. in polygon', 'Proportion abund. outside polygon'),prop.suit.table)
-
-#summary table
-summary.table=rbind(area.table,prop.area.table, prop.suit.table)
-
-###################################
-#Generate novel vs. lost area info
-
-#Total novel and lost
-total.novel=c('Total novel area', '0')
-total.lost=c('Current area lost','0')
-for (tt in 1:3){
-    tdata=potasc.quant[,tt]
-    tdata[which(tdata>0)]=1
-    current=pot.mat[,1]
-    current[which(current>0)]=1
-    difference=tdata-current
-	novel.area=difference; lost.area=difference
-    novel.area[which(novel.area<0)]=0; lost.area[which(lost.area>0)]=0; lost.area[which(lost.area==-1)]=1
-    novel.area=sum(novel.area*pos$area);lost.area=sum(lost.area*pos$area)
-    novel.area=round(novel.area/area.total,digits=2);lost.area=round(lost.area/area.total,digits=2)
-    total.novel=c(total.novel,novel.area);total.lost=c(total.lost,lost.area)
-}
-
-#In.poly.novel
-poly.novel=c('Novel area in polygon', '0')
-in.poly.lost=c('Current area lost in polygon','0')
-for (tt in 1:3){
-    tdata=in.poly.quant[,tt]
-    tdata[which(tdata>0)]=1
-    current=in.poly[,1]
-    current[which(current>0)]=1
-    difference=tdata-current
-	novel.area=difference; lost.area=difference
-    novel.area[which(novel.area<0)]=0; lost.area[which(lost.area>0)]=0; lost.area[which(lost.area==-1)]=1
-    novel.area=sum(novel.area*pos$area);lost.area=sum(lost.area*pos$area)
-    novel.area=round(novel.area/area.total,digits=2);lost.area=round(lost.area/area.total,digits=2)
-    poly.novel=c(poly.novel,novel.area);in.poly.lost=c(in.poly.lost,lost.area)
-}
-
-summary.table=rbind(summary.table,total.lost)
-summary.table=rbind(summary.table,in.poly.lost)
-summary.table=rbind(summary.table, total.novel,poly.novel) #this summary table is set up to be displayed as a legend in an image
-
-summary.tidy=summary.table[-1,-1]
-rownames(summary.tidy)=c('total.area','area.in','area.out', 'prop.area','prop.area.in','prop.area.out','prop.abund','prop.abund.in','prop.abund.out','prop.area.lost','prop.in.poly.lost','prop.total.novel','prop.in.poly.novel')
-oneline.summary=c(common.name,spp,as.vector(summary.tidy))
-oneline.colnames=c('common.name','CLIMID','CURRENT.total.area','CURRENT.area.in','CURRENT.area.out', 'CURRENT.prop.area','CURRENT.prop.area.in','CURRENT.prop.area.out','CURRENT.prop.abund','CURRENT.prop.abund.in','CURRENT.prop.abund.out','CURRENT.prop.area.lost','CURRENT.prop.in.poly.lost','CURRENT.prop.total.novel','CURRENT.prop.in.poly.novel',
-'RCP3PD.total.area','RCP3PD.area.in','RCP3PD.area.out', 'RCP3PD.prop.area','RCP3PD.prop.area.in','RCP3PD.prop.area.out','RCP3PD.prop.abund','RCP3PD.prop.abund.in','RCP3PD.prop.abund.out','RCP3PD.prop.area.lost','RCP3PD.prop.in.poly.lost','RCP3PD.prop.total.novel','RCP3PD.prop.in.poly.novel',
-'RCP6.total.area','RCP6.area.in','RCP6.area.out', 'RCP6.prop.area','RCP6.prop.area.in','RCP6.prop.area.out','RCP6.prop.abund','RCP6.prop.abund.in','RCP6.prop.abund.out','RCP6.prop.area.lost','RCP6.prop.in.poly.lost','RCP6.prop.total.novel','RCP6.prop.in.poly.novel',
-'RCP85.total.area','RCP85.area.in','RCP85.area.out', 'RCP85.prop.area','RCP85.prop.area.in','RCP85.prop.area.out','RCP85.prop.abund','RCP85.prop.abund.in','RCP85.prop.abund.out','RCP85.prop.area.lost','RCP85.prop.in.poly.lost','RCP85.prop.total.novel','RCP85.prop.in.poly.novel')
-tt=matrix(NA,nr=1,nc=length(oneline.summary))
-tt[1,]=oneline.summary;colnames(tt)=oneline.colnames
-oneline.summary=tt
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+##----------------------------------------------------------------
 
 
