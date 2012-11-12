@@ -25,10 +25,10 @@ pos = read.csv('/home/jc165798/Climate/CIAS/Australia/1km/baseline.76to05/base.p
 
 bioclim.dir='/home/jc165798/Climate/CIAS/Australia/1km/baseline.76to05/bioclim/';setwd(bioclim.dir)
 
-bioclim01 = read.asc.gz("bioclim_01.asc.gz")
-bioclim04 = read.asc.gz("bioclim_04.asc.gz")
-bioclim12 = read.asc.gz("bioclim_12.asc.gz")
-bioclim15 = read.asc.gz("bioclim_15.asc.gz")
+bioclim01 = read.asc("bioclim_01.asc")
+bioclim04 = read.asc("bioclim_04.asc")
+bioclim12 = read.asc("bioclim_12.asc")
+bioclim15 = read.asc("bioclim_15.asc")
 
 pos.bc=pos
 pos.bc$bc01=bioclim01[which(is.finite(bioclim01))]

@@ -31,22 +31,7 @@ load(file=paste(spp.dir,spp,'.potential.dist.mat.Rdata',sep='')) #load the poten
 pot.mat[which(pot.mat<threshold)] = 0 # change anything < threshold to 0
 
 ##----------------------------------------------------------------
-#Create asciis, from which images will be generated
-current=base.asc; current[cbind(pos$row,pos$col)]=pot.mat[,1] #create the current ascii
 
-#RCP85
-cois=grep('RCP85', colnames(pot.mat), value=T) #determine columns of interest - RCP85
-
-outquant=t(apply(pot.mat[,cois],1,function(x) { return(quantile(x,0.5,na.rm=TRUE,type=8)) })) #get the 50th percentile
-RCP85.asc=base.asc; RCP85.asc[cbind(pos$row,pos$col)]=outquant #create future median ascii
-
-write.asc.gz(current,paste(spp.dir, spp, 'current',sep='')) #write out the ascii
-write.asc.gz(RCP85.asc,paste(spp.dir, spp, '.RCP85',sep='')) #write out the ascii
-
-curpos=cbind(pos,pot.mat[,1]); save(x=curpos, file=paste(spp.dir, 'curpos.Rdata',sep='')) #to be used in images
-futpos=cbind(pos,as.vector(outquant)); save(futpos,file=paste(spp.dir, 'futpos.Rdata',sep='')) #to be used in images
-
-##----------------------------------------------------------------
 #overlay polygons
 files=list.files(pattern='tpoly')
 if (length(files)==0){tpolys=NULL
@@ -114,5 +99,4 @@ colnames(bioclim.summary)=c('common.name','ClimID','bc01.mean','bc01.sd','bc04.m
 write.csv(bioclim.summary, paste(spp.dir, spp,'.bioclim.csv',sep=''),row.names=FALSE)
 
 ##----------------------------------------------------------------
-
 
