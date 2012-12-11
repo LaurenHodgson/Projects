@@ -3,8 +3,8 @@ args=(commandArgs(TRUE)); for(i in 1:length(args)) { eval(parse(text=args[[i]]))
 library(SDMTools)
 pos = read.csv('/home/jc165798/Climate/CIAS/Australia/1km/baseline.76to05/base.positions.csv',as.is=TRUE) 
 
-spp.dir = paste('/home/jc165798/working/NARP_birds/models_1km/',spp,'/output/ascii/',sep=''); setwd(spp.dir) #define the overarching species directory
-	out.dir=paste("/home/jc148322/Bird_NARP/species.outputs_1km/",spp,'/',sep='');dir.create(out.dir,recursive=TRUE)
+spp.dir = paste('/home/jc148322/Bird_NARP/models_1km/',spp,'/output/ascii/',sep=''); setwd(spp.dir) #define the overarching species directory
+	out.dir=paste("/home/jc148322/Bird_NARP/species.outputs/",spp,'/',sep='');dir.create(out.dir,recursive=TRUE)
 
 	
 	files=list.files()

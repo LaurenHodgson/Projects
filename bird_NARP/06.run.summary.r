@@ -7,7 +7,7 @@ args=(commandArgs(TRUE)); for(i in 1:length(args)) { eval(parse(text=args[[i]]))
 library(SDMTools); library(maptools) #load the necessary libraries
 
 #define directories
-spp.dir = paste('/home/jc165798/working/NARP_birds/',model.dir,'/',spp,'/',sep=''); setwd(spp.dir) #define the input species data directory
+spp.dir = paste('/home/jc148322/Bird_NARP/',model.dir,'/',spp,'/',sep=''); setwd(spp.dir) #define the input species data directory
 
 ##----------------------------------------------------------------
 #Bring in all the necessary information
@@ -40,7 +40,7 @@ cois=grep('RCP85', colnames(pot.mat), value=T) #determine columns of interest - 
 outquant=t(apply(pot.mat[,cois],1,function(x) { return(quantile(x,0.5,na.rm=TRUE,type=8)) })) #get the 50th percentile
 RCP85.asc=base.asc; RCP85.asc[cbind(pos$row,pos$col)]=outquant #create future median ascii
 
-write.asc.gz(current,paste(spp.dir, spp, 'current',sep='')) #write out the ascii
+write.asc.gz(current,paste(spp.dir, spp, '.current',sep='')) #write out the ascii
 write.asc.gz(RCP85.asc,paste(spp.dir, spp, '.RCP85',sep='')) #write out the ascii
 
 curpos=cbind(pos,pot.mat[,1]); save(x=curpos, file=paste(spp.dir, 'curpos.Rdata',sep='')) #to be used in images

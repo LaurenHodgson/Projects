@@ -1,10 +1,10 @@
 
 library(SDMTools)
 
-species=list.files('/home/jc165798/working/NARP_birds/models_1km/')
+species=list.files('/home/jc148322/Bird_NARP/models_1km/')
 
 sh.dir='/home/jc148322/scripts/NARP_birds/pot_mat/';dir.create(sh.dir) #dir to write sh scripts to
-for (spp in species[31:59]){ cat(spp, '\n')
+for (spp in species[31:length(species)]){ cat(spp, '\n')
 	setwd(sh.dir)
 	##create the sh file
 	 zz = file(paste('05.',spp,'.pot.mat.sh',sep=''),'w')
@@ -14,5 +14,5 @@ for (spp in species[31:59]){ cat(spp, '\n')
 	close(zz) 
 
 	##submit the script
-	system(paste('qsub -l pmem=2gb 05.',spp,'.pot.mat.sh',sep=''))
+	system(paste('qsub -l nodes=1:ppn=2 05.',spp,'.pot.mat.sh',sep=''))
 }
